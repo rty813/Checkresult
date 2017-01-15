@@ -2,8 +2,10 @@ package com.example.zhang.checkresult;
 
 import android.app.ProgressDialog;
 import android.content.Context;
+import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.support.annotation.IntegerRes;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
@@ -45,6 +47,8 @@ public class MainActivity extends AppCompatActivity {
     private SimpleAdapter simpleAdapter;
     private InputMethodManager imm;
     private ProgressBar progressBar;
+    private double GPA;
+    private double sum;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -160,6 +164,8 @@ public class MainActivity extends AppCompatActivity {
                 if (trTags.size() == 5){
                     publishProgress();
                 }
+                sum = 0;
+                GPA = 0;
                 for (Element trTag : trTags){
                     Elements tdTags = trTag.select("td");
                     if (tdTags.size()==0){
@@ -171,11 +177,16 @@ public class MainActivity extends AppCompatActivity {
                     int i = 1;
                     builder = new StringBuilder();
                     Map map = new HashMap<String, String>();
+                    double credit = 0;
                     for (Element tdTag : tdTags){
                         switch (i){
                             case 4:
                                 map.put("name",tdTag.text());
                                 System.out.println(tdTag.text());
+                                break;
+                            case 6:
+                                credit = Double.valueOf(tdTag.text());
+                                sum += credit;
                                 break;
                             case 7:
                                 builder.append("平时成绩：" + tdTag.text() + '\n');
@@ -189,6 +200,9 @@ public class MainActivity extends AppCompatActivity {
                             case 11:
                                 builder.append("总评成绩：" + tdTag.text());
                                 break;
+                            case 12:
+                                GPA = GPA + credit * Double.valueOf(tdTag.text());
+                                break;
                         }
                         i++;
                     }
@@ -196,6 +210,11 @@ public class MainActivity extends AppCompatActivity {
                     System.out.println(builder.toString());
                     lvList.add(map);
                 }
+                System.out.println((float)GPA / sum);
+                Map map = new HashMap<String, String>();
+                map.put("name","学分绩");
+                map.put("score",String.valueOf((float)GPA / sum));
+                lvList.add(0,map);
 
             } catch (MalformedURLException e) {
                 e.printStackTrace();
