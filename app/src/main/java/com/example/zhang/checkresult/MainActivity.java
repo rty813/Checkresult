@@ -177,14 +177,27 @@ public class MainActivity extends AppCompatActivity {
                     int i = 1;
                     builder = new StringBuilder();
                     Map map = new HashMap<String, String>();
+                    boolean gpaEnable = true;
                     double credit = 0;
                     for (Element tdTag : tdTags){
                         switch (i){
+                            case 2:
+//                                System.out.println(tdTag.text());
+                                if (tdTag.text().charAt(3) == 'L'){
+                                    gpaEnable = false;
+                                }else{
+                                    gpaEnable = true;
+                                }
+                                break;
                             case 4:
                                 map.put("name",tdTag.text());
                                 System.out.println(tdTag.text());
                                 break;
                             case 6:
+                                if (!gpaEnable){
+                                    i++;
+                                    continue;
+                                }
                                 credit = Double.valueOf(tdTag.text());
                                 sum += credit;
                                 break;
@@ -201,6 +214,11 @@ public class MainActivity extends AppCompatActivity {
                                 builder.append("总评成绩：" + tdTag.text());
                                 break;
                             case 12:
+                                if (!gpaEnable){
+                                    i++;
+                                    continue;
+                                }
+                                System.out.println("加入GPA");
                                 GPA = GPA + credit * Double.valueOf(tdTag.text());
                                 break;
                         }
