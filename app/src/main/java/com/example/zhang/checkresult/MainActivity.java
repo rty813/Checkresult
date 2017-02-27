@@ -6,16 +6,23 @@ import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.IntegerRes;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.SimpleAdapter;
+import android.widget.Spinner;
 import android.widget.Toast;
 
 import org.jsoup.Jsoup;
+import org.jsoup.helper.StringUtil;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
@@ -43,25 +50,35 @@ public class MainActivity extends AppCompatActivity {
     private ListView listView;
     private String username;
     private String password;
+    private Spinner spinner;
     private List<Map<String, String>> lvList;
+    private List<Map<String, String>> lvList1;
+    private List<String> semesterList;
     private SimpleAdapter simpleAdapter;
+    private ArrayAdapter spinnerAdapter;
     private InputMethodManager imm;
     private ProgressBar progressBar;
-    private double GPA;
-    private double sum;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        setTitle("2016-2017秋季成绩查询");
+        setTitle("西北工业大学本科生成绩查询");
         imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
         editpw = (EditText) findViewById(R.id.editpw);
         editun = (EditText) findViewById(R.id.editun);
         listView = (ListView) findViewById(R.id.listView);
         lvList = new ArrayList<>();
+        lvList1 = new ArrayList<>();
+        semesterList = new ArrayList<>();
         progressBar = (ProgressBar) findViewById(R.id.progressBar);
-        simpleAdapter = new SimpleAdapter(MainActivity.this, lvList, android.R.layout.simple_list_item_2,
+
+        spinner = (Spinner) findViewById(R.id.spinner);
+        spinnerAdapter = new ArrayAdapter(this, android.R.layout.simple_spinner_item, semesterList);
+        spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinner.setAdapter(spinnerAdapter);
+
+        simpleAdapter = new SimpleAdapter(MainActivity.this, lvList1, android.R.layout.simple_list_item_2,
                 new String[]{"name", "score"}, new int[]{android.R.id.text1, android.R.id.text2});
         listView.setAdapter(simpleAdapter);
 
@@ -73,18 +90,39 @@ public class MainActivity extends AppCompatActivity {
                 progressBar.setVisibility(View.VISIBLE);
                 imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
                 lvList.removeAll(lvList);
+                lvList1.removeAll(lvList1);
                 simpleAdapter.notifyDataSetChanged();
                 username = editun.getText().toString();
                 password = editpw.getText().toString();
                 saveUserInfo(MainActivity.this, username, password);
+                semesterList.removeAll(semesterList);
+                spinnerAdapter.notifyDataSetChanged();
                 new myAsyncTask().execute();
+            }
+        });
+        spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
+                lvList1.removeAll(lvList1);
+                for (Map<String, String> map : lvList){
+                    if (map.get("semester").equals(semesterList.get(i))){
+//                        System.out.println(map.get("name") + "\n" + map.get("score") + "\n");
+                        lvList1.add(map);
+                    }
+                }
+                simpleAdapter.notifyDataSetChanged();
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> adapterView) {
+
             }
         });
     }
 
     public static boolean saveUserInfo(Context context, String username, String password){
         try{
-            File file = new File(context.getFilesDir(),"userinfo.txt");
+            File file = new File(context.getFilesDir(),"userinfo");
             FileOutputStream outputStream = new FileOutputStream(file);
             outputStream.write((username + "##" + password).getBytes());
             outputStream.close();
@@ -113,6 +151,22 @@ public class MainActivity extends AppCompatActivity {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        menu.add("关于");
+        return super.onCreateOptionsMenu(menu);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        AlertDialog.Builder normalDialog = new AlertDialog.Builder(MainActivity.this);
+        normalDialog.setTitle("关于");
+        normalDialog.setMessage("By 豆腐 QQ:523213189\n本项目已开源，地址：https://github.com/rty813/Checkresult");
+        normalDialog.setPositiveButton("确定", null);
+        normalDialog.show();
+        return super.onOptionsItemSelected(item);
     }
 
     public class myAsyncTask extends AsyncTask<Void, Void, Void>{
@@ -164,23 +218,44 @@ public class MainActivity extends AppCompatActivity {
                 if (trTags.size() == 5){
                     publishProgress();
                 }
-                sum = 0;
-                GPA = 0;
+                double sum = 0;
+                double GPA = 0;
+                double credit = 0;
                 for (Element trTag : trTags){
                     Elements tdTags = trTag.select("td");
                     if (tdTags.size()==0){
                         continue;
                     }
-                    if (!tdTags.get(0).text().equals("2016-2017 秋")){
+                    if (tdTags.get(0).text().length() < 10){
                         continue;
                     }
                     int i = 1;
                     builder = new StringBuilder();
                     Map map = new HashMap<String, String>();
                     boolean gpaEnable = true;
-                    double credit = 0;
+                    credit = 0;
                     for (Element tdTag : tdTags){
                         switch (i){
+                            case 1:
+                                map.put("semester", tdTag.text());
+                                if (!semesterList.contains(tdTag.text())){
+                                    if (semesterList.size() > 0) {
+                                        Map mapGPA = new HashMap<String, String>();
+                                        mapGPA.put("name", "学分绩（不计选修课）");
+                                        mapGPA.put("score", String.valueOf((float) GPA / sum));
+                                        mapGPA.put("semester", semesterList.get(semesterList.size()-1));
+                                        lvList.add(mapGPA);
+                                        mapGPA = new HashMap<String, String>();
+                                        mapGPA.put("name", "总学分（不计选修课）");
+                                        mapGPA.put("score", String.valueOf(sum));
+                                        mapGPA.put("semester", semesterList.get(semesterList.size()-1));
+                                        lvList.add(mapGPA);
+                                        GPA = 0;
+                                        sum = 0;
+                                    }
+                                    semesterList.add(tdTag.text());
+                                }
+                                break;
                             case 2:
 //                                System.out.println(tdTag.text());
                                 if (tdTag.text().charAt(3) == 'L'){
@@ -191,14 +266,16 @@ public class MainActivity extends AppCompatActivity {
                                 break;
                             case 4:
                                 map.put("name",tdTag.text());
-                                System.out.println(tdTag.text());
+//                                System.out.println(tdTag.text());
                                 break;
                             case 6:
                                 if (!gpaEnable){
+                                    map.put("name", map.get("name") + "\t（选修）");
                                     i++;
                                     continue;
                                 }
                                 credit = Double.valueOf(tdTag.text());
+                                map.put("name", map.get("name") + "\t" + credit);
                                 sum += credit;
                                 break;
                             case 7:
@@ -214,25 +291,31 @@ public class MainActivity extends AppCompatActivity {
                                 builder.append("总评成绩：" + tdTag.text());
                                 break;
                             case 12:
-                                if (!gpaEnable){
+                                if ((!gpaEnable) || (tdTag.text().equals("P"))){
                                     i++;
                                     continue;
                                 }
-                                System.out.println("加入GPA");
+//                                System.out.println("加入GPA");
                                 GPA = GPA + credit * Double.valueOf(tdTag.text());
                                 break;
                         }
                         i++;
                     }
                     map.put("score", builder.toString());
-                    System.out.println(builder.toString());
+//                    System.out.println(builder.toString());
                     lvList.add(map);
                 }
-                System.out.println((float)GPA / sum);
-                Map map = new HashMap<String, String>();
-                map.put("name","学分绩");
-                map.put("score",String.valueOf((float)GPA / sum));
-                lvList.add(0,map);
+//                System.out.println((float)GPA / sum);
+                Map mapGPA = new HashMap<String, String>();
+                mapGPA.put("name", "学分绩（不计选修课）");
+                mapGPA.put("score", String.valueOf((float) GPA / sum));
+                mapGPA.put("semester", semesterList.get(semesterList.size()-1));
+                lvList.add(mapGPA);
+                mapGPA = new HashMap<String, String>();
+                mapGPA.put("name", "总学分（不计选修课）");
+                mapGPA.put("score", String.valueOf(sum));
+                mapGPA.put("semester", semesterList.get(semesterList.size()-1));
+                lvList.add(mapGPA);
 
             } catch (MalformedURLException e) {
                 e.printStackTrace();
@@ -251,6 +334,14 @@ public class MainActivity extends AppCompatActivity {
         @Override
         protected void onPostExecute(Void aVoid) {
             super.onPostExecute(aVoid);
+            spinnerAdapter.notifyDataSetChanged();
+            for (Map<String, String> map : lvList){
+                if (map.get("semester").equals(semesterList.get(0))){
+                    System.out.println(map.get("name") + "\n" + map.get("score") + "\n");
+                    lvList1.add(map);
+                }
+            }
+
             simpleAdapter.notifyDataSetChanged();
             progressBar.setVisibility(View.GONE);
         }
