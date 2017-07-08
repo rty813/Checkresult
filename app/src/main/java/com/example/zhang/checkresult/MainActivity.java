@@ -1,11 +1,9 @@
 package com.example.zhang.checkresult;
 
-import android.app.ProgressDialog;
 import android.content.Context;
-import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.support.annotation.IntegerRes;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.view.Menu;
@@ -22,16 +20,11 @@ import android.widget.Spinner;
 import android.widget.Toast;
 
 import org.jsoup.Jsoup;
-import org.jsoup.helper.StringUtil;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
 import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
@@ -42,7 +35,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.PriorityBlockingQueue;
 
 public class MainActivity extends AppCompatActivity {
     private EditText editun;
@@ -74,7 +66,7 @@ public class MainActivity extends AppCompatActivity {
         progressBar = (ProgressBar) findViewById(R.id.progressBar);
 
         spinner = (Spinner) findViewById(R.id.spinner);
-        spinnerAdapter = new ArrayAdapter(this, android.R.layout.simple_spinner_item, semesterList);
+        spinnerAdapter = new ArrayAdapter(this, R.layout.myspinner_layout, semesterList);
         spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinner.setAdapter(spinnerAdapter);
 
@@ -82,11 +74,12 @@ public class MainActivity extends AppCompatActivity {
                 new String[]{"name", "score"}, new int[]{android.R.id.text1, android.R.id.text2});
         listView.setAdapter(simpleAdapter);
 
-        getTxtFileInfo(MainActivity.this);
+        getUserInfo(MainActivity.this);
 
         findViewById(R.id.button).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                spinner.setVisibility(View.GONE);
                 progressBar.setVisibility(View.VISIBLE);
                 imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
                 lvList.removeAll(lvList);
@@ -121,36 +114,20 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public static boolean saveUserInfo(Context context, String username, String password){
-        try{
-            File file = new File(context.getFilesDir(),"userinfo");
-            FileOutputStream outputStream = new FileOutputStream(file);
-            outputStream.write((username + "##" + password).getBytes());
-            outputStream.close();
-            return true;
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+
+        SharedPreferences preferences = context.getSharedPreferences("user", context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = preferences.edit();
+        editor.putString("username", username);
+        editor.putString("password", password);
+        editor.commit();
         return true;
     }
 
-    private void getTxtFileInfo(Context context){
-        try {
-            File file = new File(context.getFilesDir(),"userinfo.txt");
-            FileInputStream inputStream = new FileInputStream(file);
-            BufferedReader br = new BufferedReader(new InputStreamReader(inputStream));
-            String content = br.readLine();
-            String[] contents = content.split("##");
-            username = contents[0];
-            password = contents[1];
-            editpw.setText(password);
-            editun.setText(username);
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+    private void getUserInfo(Context context){
+        SharedPreferences preferences = context.getSharedPreferences("user", context.MODE_PRIVATE);
+        editun.setText(preferences.getString("username", null));
+        editpw.setText(preferences.getString("password", null));
+
     }
 
     @Override
@@ -344,6 +321,7 @@ public class MainActivity extends AppCompatActivity {
 
             simpleAdapter.notifyDataSetChanged();
             progressBar.setVisibility(View.GONE);
+            spinner.setVisibility(View.VISIBLE);
         }
     }
 }
