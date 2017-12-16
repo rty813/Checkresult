@@ -220,17 +220,17 @@ public class MainActivity extends AppCompatActivity {
                                         Map mapGPA = new HashMap<String, String>();
                                         mapGPA.put("name", "学分绩（不计选修课）");
                                         mapGPA.put("score", String.valueOf((float) GPA / sum));
-                                        mapGPA.put("semester", semesterList.get(semesterList.size()-1));
+                                        mapGPA.put("semester", semesterList.get(0));
                                         lvList.add(mapGPA);
                                         mapGPA = new HashMap<String, String>();
                                         mapGPA.put("name", "总学分（不计选修课）");
                                         mapGPA.put("score", String.valueOf(sum));
-                                        mapGPA.put("semester", semesterList.get(semesterList.size()-1));
+                                        mapGPA.put("semester", semesterList.get(0));
                                         lvList.add(mapGPA);
                                         GPA = 0;
                                         sum = 0;
                                     }
-                                    semesterList.add(tdTag.text());
+                                    semesterList.add(0, tdTag.text());
                                 }
                                 break;
                             case 2:
@@ -268,12 +268,17 @@ public class MainActivity extends AppCompatActivity {
                                 builder.append("总评成绩：" + tdTag.text());
                                 break;
                             case 12:
-                                if ((!gpaEnable) || (tdTag.text().equals("P"))){
+                                if (!gpaEnable){
                                     i++;
                                     continue;
                                 }
 //                                System.out.println("加入GPA");
-                                GPA = GPA + credit * Double.valueOf(tdTag.text());
+                                try{
+                                    GPA = GPA + credit * Double.valueOf(tdTag.text());
+                                }
+                                catch (Exception e){
+                                    e.printStackTrace();
+                                }
                                 break;
                         }
                         i++;
@@ -282,16 +287,20 @@ public class MainActivity extends AppCompatActivity {
 //                    System.out.println(builder.toString());
                     lvList.add(map);
                 }
+                if (semesterList.size() == 0){
+                    publishProgress();
+                    return null;
+                }
 //                System.out.println((float)GPA / sum);
                 Map mapGPA = new HashMap<String, String>();
                 mapGPA.put("name", "学分绩（不计选修课）");
                 mapGPA.put("score", String.valueOf((float) GPA / sum));
-                mapGPA.put("semester", semesterList.get(semesterList.size()-1));
+                mapGPA.put("semester", semesterList.get(0));
                 lvList.add(mapGPA);
                 mapGPA = new HashMap<String, String>();
                 mapGPA.put("name", "总学分（不计选修课）");
                 mapGPA.put("score", String.valueOf(sum));
-                mapGPA.put("semester", semesterList.get(semesterList.size()-1));
+                mapGPA.put("semester", semesterList.get(0));
                 lvList.add(mapGPA);
 
             } catch (MalformedURLException e) {
@@ -311,6 +320,10 @@ public class MainActivity extends AppCompatActivity {
         @Override
         protected void onPostExecute(Void aVoid) {
             super.onPostExecute(aVoid);
+            if (lvList.size() == 0){
+                progressBar.setVisibility(View.GONE);
+                return;
+            }
             spinnerAdapter.notifyDataSetChanged();
             for (Map<String, String> map : lvList){
                 if (map.get("semester").equals(semesterList.get(0))){
