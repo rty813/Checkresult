@@ -1,4 +1,4 @@
-package com.example.zhang.checkresult;
+package com.rty813.zhang.checkresult;
 
 import org.junit.Test;
 

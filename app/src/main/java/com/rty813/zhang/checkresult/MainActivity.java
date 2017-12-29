@@ -1,6 +1,10 @@
-package com.example.zhang.checkresult;
+package com.rty813.zhang.checkresult;
 
+import android.app.AlarmManager;
+import android.app.PendingIntent;
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -71,7 +75,7 @@ public class MainActivity extends AppCompatActivity {
         spinner.setAdapter(spinnerAdapter);
 
         simpleAdapter = new SimpleAdapter(MainActivity.this, lvList1, android.R.layout.simple_list_item_2,
-                new String[]{"name", "score"}, new int[]{android.R.id.text1, android.R.id.text2});
+                new String[] { "name", "score" }, new int[] { android.R.id.text1, android.R.id.text2 });
         listView.setAdapter(simpleAdapter);
 
         getUserInfo(MainActivity.this);
@@ -97,9 +101,9 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
                 lvList1.removeAll(lvList1);
-                for (Map<String, String> map : lvList){
-                    if (map.get("semester").equals(semesterList.get(i))){
-//                        System.out.println(map.get("name") + "\n" + map.get("score") + "\n");
+                for (Map<String, String> map : lvList) {
+                    if (map.get("semester").equals(semesterList.get(i))) {
+                        //                        System.out.println(map.get("name") + "\n" + map.get("score") + "\n");
                         lvList1.add(map);
                     }
                 }
@@ -108,12 +112,19 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onNothingSelected(AdapterView<?> adapterView) {
-
             }
         });
+//        PendingIntent pendingIntent = PendingIntent.getService(this, 0,
+//                new Intent(this, NotifyService.class), 0);
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(this, 0,
+                new Intent(MyReceiver.ACTION_GET_DATA), 0);
+        AlarmManager manager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+        if (null != manager){
+            manager.setRepeating(AlarmManager.RTC_WAKEUP, System.currentTimeMillis(), 600000, pendingIntent);
+        }
     }
 
-    public static boolean saveUserInfo(Context context, String username, String password){
+    public static boolean saveUserInfo(Context context, String username, String password) {
 
         SharedPreferences preferences = context.getSharedPreferences("user", context.MODE_PRIVATE);
         SharedPreferences.Editor editor = preferences.edit();
@@ -123,7 +134,7 @@ public class MainActivity extends AppCompatActivity {
         return true;
     }
 
-    private void getUserInfo(Context context){
+    private void getUserInfo(Context context) {
         SharedPreferences preferences = context.getSharedPreferences("user", context.MODE_PRIVATE);
         editun.setText(preferences.getString("username", null));
         editpw.setText(preferences.getString("password", null));
@@ -146,7 +157,7 @@ public class MainActivity extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
-    public class myAsyncTask extends AsyncTask<Void, Void, Void>{
+    public class myAsyncTask extends AsyncTask<Void, Void, Void> {
         @Override
         protected Void doInBackground(Void... voids) {
             try {
@@ -156,7 +167,8 @@ public class MainActivity extends AppCompatActivity {
                 //获取Cookie
                 HttpURLConnection connection = (HttpURLConnection) url.openConnection();
                 connection.setRequestMethod("POST");
-                connection.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.87 Safari/537.36 OPR/42.0.2393.94 (Edition Baidu)");
+                connection.setRequestProperty("User-Agent",
+                        "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.87 Safari/537.36 OPR/42.0.2393.94 (Edition Baidu)");
                 String cookie = connection.getHeaderField("Set-Cookie");
                 System.out.println(connection.getHeaderFields());
 
@@ -174,9 +186,9 @@ public class MainActivity extends AppCompatActivity {
                 BufferedReader br = new BufferedReader(new InputStreamReader(connection.getInputStream()));
                 br.close();
 
-
                 //获取成绩
-                url = new URL("http://us.nwpu.edu.cn/eams/teach/grade/course/person!historyCourseGrade.action?projectType=MAJOR");
+                url = new URL(
+                        "http://us.nwpu.edu.cn/eams/teach/grade/course/person!historyCourseGrade.action?projectType=MAJOR");
                 connection = (HttpURLConnection) url.openConnection();
                 connection.setRequestProperty("Cookie", cookie);
 
@@ -184,7 +196,7 @@ public class MainActivity extends AppCompatActivity {
                 BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
                 StringBuilder builder = new StringBuilder();
                 String line = "";
-                while ((line = reader.readLine()) != null){
+                while ((line = reader.readLine()) != null) {
                     builder.append(line + '\n');
                 }
                 reader.close();
@@ -192,18 +204,18 @@ public class MainActivity extends AppCompatActivity {
                 //利用JSoup解析
                 Document document = Jsoup.parse(builder.toString());
                 Elements trTags = document.select("tr");
-                if (trTags.size() == 5){
+                if (trTags.size() == 5) {
                     publishProgress();
                 }
                 double sum = 0;
                 double GPA = 0;
                 double credit = 0;
-                for (Element trTag : trTags){
+                for (Element trTag : trTags) {
                     Elements tdTags = trTag.select("td");
-                    if (tdTags.size()==0){
+                    if (tdTags.size() == 0) {
                         continue;
                     }
-                    if (tdTags.get(0).text().length() < 10){
+                    if (tdTags.get(0).text().length() < 10) {
                         continue;
                     }
                     int i = 1;
@@ -211,87 +223,87 @@ public class MainActivity extends AppCompatActivity {
                     Map map = new HashMap<String, String>();
                     boolean gpaEnable = true;
                     credit = 0;
-                    for (Element tdTag : tdTags){
-                        switch (i){
-                            case 1:
-                                map.put("semester", tdTag.text());
-                                if (!semesterList.contains(tdTag.text())){
-                                    if (semesterList.size() > 0) {
-                                        Map mapGPA = new HashMap<String, String>();
-                                        mapGPA.put("name", "学分绩（不计选修课）");
-                                        mapGPA.put("score", String.valueOf((float) GPA / sum));
-                                        mapGPA.put("semester", semesterList.get(semesterList.size()-1));
-                                        lvList.add(mapGPA);
-                                        mapGPA = new HashMap<String, String>();
-                                        mapGPA.put("name", "总学分（不计选修课）");
-                                        mapGPA.put("score", String.valueOf(sum));
-                                        mapGPA.put("semester", semesterList.get(semesterList.size()-1));
-                                        lvList.add(mapGPA);
-                                        GPA = 0;
-                                        sum = 0;
-                                    }
-                                    semesterList.add(tdTag.text());
+                    for (Element tdTag : tdTags) {
+                        switch (i) {
+                        case 1:
+                            map.put("semester", tdTag.text());
+                            if (!semesterList.contains(tdTag.text())) {
+                                if (semesterList.size() > 0) {
+                                    Map mapGPA = new HashMap<String, String>();
+                                    mapGPA.put("name", "学分绩（不计选修课）");
+                                    mapGPA.put("score", String.valueOf((float) GPA / sum));
+                                    mapGPA.put("semester", semesterList.get(semesterList.size() - 1));
+                                    lvList.add(mapGPA);
+                                    mapGPA = new HashMap<String, String>();
+                                    mapGPA.put("name", "总学分（不计选修课）");
+                                    mapGPA.put("score", String.valueOf(sum));
+                                    mapGPA.put("semester", semesterList.get(semesterList.size() - 1));
+                                    lvList.add(mapGPA);
+                                    GPA = 0;
+                                    sum = 0;
                                 }
-                                break;
-                            case 2:
-//                                System.out.println(tdTag.text());
-                                if (tdTag.text().charAt(3) == 'L'){
-                                    gpaEnable = false;
-                                }else{
-                                    gpaEnable = true;
-                                }
-                                break;
-                            case 4:
-                                map.put("name",tdTag.text());
-//                                System.out.println(tdTag.text());
-                                break;
-                            case 6:
-                                if (!gpaEnable){
-                                    map.put("name", map.get("name") + "\t（选修）");
-                                    i++;
-                                    continue;
-                                }
-                                credit = Double.valueOf(tdTag.text());
-                                map.put("name", map.get("name") + "\t" + credit);
-                                sum += credit;
-                                break;
-                            case 7:
-                                builder.append("平时成绩：" + tdTag.text() + '\n');
-                                break;
-                            case 8:
-                                builder.append("期中成绩：" + tdTag.text() + '\n');
-                                break;
-                            case 10:
-                                builder.append("期末成绩：" + tdTag.text() + '\n');
-                                break;
-                            case 11:
-                                builder.append("总评成绩：" + tdTag.text());
-                                break;
-                            case 12:
-                                if ((!gpaEnable) || (tdTag.text().equals("P"))){
-                                    i++;
-                                    continue;
-                                }
-//                                System.out.println("加入GPA");
-                                GPA = GPA + credit * Double.valueOf(tdTag.text());
-                                break;
+                                semesterList.add(tdTag.text());
+                            }
+                            break;
+                        case 2:
+                            //                                System.out.println(tdTag.text());
+                            if (tdTag.text().charAt(3) == 'L') {
+                                gpaEnable = false;
+                            } else {
+                                gpaEnable = true;
+                            }
+                            break;
+                        case 4:
+                            map.put("name", tdTag.text());
+                            //                                System.out.println(tdTag.text());
+                            break;
+                        case 6:
+                            if (!gpaEnable) {
+                                map.put("name", map.get("name") + "\t（选修）");
+                                i++;
+                                continue;
+                            }
+                            credit = Double.valueOf(tdTag.text());
+                            map.put("name", map.get("name") + "\t" + credit);
+                            sum += credit;
+                            break;
+                        case 7:
+                            builder.append("平时成绩：" + tdTag.text() + '\n');
+                            break;
+                        case 8:
+                            builder.append("期中成绩：" + tdTag.text() + '\n');
+                            break;
+                        case 10:
+                            builder.append("期末成绩：" + tdTag.text() + '\n');
+                            break;
+                        case 11:
+                            builder.append("总评成绩：" + tdTag.text());
+                            break;
+                        case 12:
+                            if ((!gpaEnable) || (tdTag.text().equals("P"))) {
+                                i++;
+                                continue;
+                            }
+                            //                                System.out.println("加入GPA");
+                            GPA = GPA + credit * Double.valueOf(tdTag.text());
+                            break;
                         }
                         i++;
                     }
                     map.put("score", builder.toString());
-//                    System.out.println(builder.toString());
+                    //                    System.out.println(builder.toString());
                     lvList.add(map);
                 }
-//                System.out.println((float)GPA / sum);
+                //                System.out.println((float)GPA / sum);
                 Map mapGPA = new HashMap<String, String>();
                 mapGPA.put("name", "学分绩（不计选修课）");
                 mapGPA.put("score", String.valueOf((float) GPA / sum));
-                mapGPA.put("semester", semesterList.get(semesterList.size()-1));
+                mapGPA.put("semester", semesterList.get(semesterList.size() - 1));
                 lvList.add(mapGPA);
                 mapGPA = new HashMap<String, String>();
                 mapGPA.put("name", "总学分（不计选修课）");
                 mapGPA.put("score", String.valueOf(sum));
-                mapGPA.put("semester", semesterList.get(semesterList.size()-1));
+                mapGPA.put("semester", semesterList.get(semesterList.size() - 1));
                 lvList.add(mapGPA);
 
             } catch (MalformedURLException e) {
@@ -305,15 +317,15 @@ public class MainActivity extends AppCompatActivity {
         @Override
         protected void onProgressUpdate(Void... values) {
             super.onProgressUpdate(values);
-            Toast.makeText(MainActivity.this,"请检查用户名和密码",Toast.LENGTH_LONG).show();
+            Toast.makeText(MainActivity.this, "请检查用户名和密码", Toast.LENGTH_LONG).show();
         }
 
         @Override
         protected void onPostExecute(Void aVoid) {
             super.onPostExecute(aVoid);
             spinnerAdapter.notifyDataSetChanged();
-            for (Map<String, String> map : lvList){
-                if (map.get("semester").equals(semesterList.get(0))){
+            for (Map<String, String> map : lvList) {
+                if (map.get("semester").equals(semesterList.get(0))) {
                     System.out.println(map.get("name") + "\n" + map.get("score") + "\n");
                     lvList1.add(map);
                 }

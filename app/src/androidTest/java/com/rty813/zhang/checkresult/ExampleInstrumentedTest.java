@@ -1,4 +1,4 @@
-package com.example.zhang.checkresult;
+package com.rty813.zhang.checkresult;
 
 import android.content.Context;
 import android.support.test.InstrumentationRegistry;
